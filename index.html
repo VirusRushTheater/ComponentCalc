@@ -1,0 +1,107 @@
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>Alola!</title>
+
+	<script type="text/javascript" src="scripts/nerdamer.core.js"></script>
+	<script type="text/javascript" src="scripts/core.js"></script>
+	
+	<link href="https://fonts.googleapis.com/css?family=Cantarell" rel="stylesheet">
+	<link href="fontello-2ca4a445/css/sitefont.css" rel="stylesheet">
+	<link href="style.css" rel="stylesheet">
+
+	<script type="text/javascript" src="scripts/dominteractivity.js"></script>
+</head>
+<body>
+	<div id="pagewrapper">
+		<header><h1>Component calculator</h1></header>
+		<article>
+			<h2>Calculator</h2>
+			<p>Write the functions to be calculated here. Restrictions serve to limit your component values to a certain degree (and make calculation much faster).</p>
+			<p>Please be considerate, syntax checking is not too strong and the program may crash if it finds unexpected results. Press F5 in those cases.</p>
+			<div class="paramflex">
+				<div>
+					<h3>Functions</h3>
+					<div id="func-tbx-flex" class="tbx-flex tbx-small">
+					<table class="flist">
+
+					</table>
+					</div>
+					<input id="func-input" class="comp-input" type="text" value="Write a function (like R1+R2 = 10k)">
+					<a href="" onclick="return false;" id="add-function" class="add-btn" title="Add field"><i class="icon-plus-circle"></i></a>
+					<a href="" onclick="return false;" id="clr-function" class="clear-btn" title="Clear fields" title="Clear fields"><i class="icon-erase"></i></a>
+				</div>
+				<div>
+					<h3>Restrictions</h3>
+					<div id="rest-tbx-flex" class="tbx-flex tbx-small">
+					<table class="flist">
+
+					</table>
+					</div>
+					<input id="rest-input" class="comp-input" type="text" value="Write a restriction (like R1 >= 1k)">
+					<a href="" onclick="return false;" id="add-restriction" class="add-btn" title="Add field"><i class="icon-plus-circle"></i></a>
+					<a href="" onclick="return false;" id="clr-restriction" class="clear-btn" title="Clear fields"><i class="icon-erase"></i></a>
+				</div>
+			</div>
+			<p>Variables to be calculated: <span id=vars-id></span></p>
+			<a id="calculate-btn" href="" onclick="return false;">Calculate</a>
+			
+			<h2>Results</h2>
+			<p>Run the calculator with the components available in your toolbox to get the closest matches.</p>
+			<textarea id="results-div">
+			</textarea>
+		</article>
+		<article>
+			<h2>Quick templates</h2>
+			<p>You can select a quick template here and adapt it to your requirements.</p>
+		</article>
+		<article>
+			<h2>Toolbox</h2>
+			<p>Set here the components you got in your toolbox. To add components, enter them separated by spaces on the text box below, and push "add". Values like "3.3", "22e-7", "4k7" and "100uF" are allowed.</p>
+			<div class="paramflex">
+				<div>
+					<h3>Resistors</h3>
+					<div id="res-tbx-flex" class="tbx-flex">
+						
+					</div>
+					<input id="res-input" class="comp-input" type="text" value="Write res. values here">
+					<a href="" onclick="return false;" id="add-res" class="add-btn" title="Add field"><i class="icon-plus-circle"></i></a>
+					<a href="" onclick="return false;" id="clr-res" class="clear-btn" title="Clear fields"><i class="icon-erase"></i></a>
+				</div>
+				<div>
+					<h3>Capacitors</h3>
+					<div id="cap-tbx-flex" class="tbx-flex">
+
+					</div>
+					<input id="cap-input" class="comp-input" type="text" value="Write cap. values here">
+					<a href="" onclick="return false;" id="add-cap" class="add-btn" title="Add field"><i class="icon-plus-circle"></i></a>
+					<a href="" onclick="return false;" id="clr-cap" class="clear-btn" title="Clear fields"><i class="icon-erase"></i></a>
+				</div>
+				<div>
+					<h3>Inductors</h3>
+					<div id="ind-tbx-flex" class="tbx-flex">
+					
+					</div>
+					<input id="ind-input" class="comp-input" type="text" value="Write ind. values here">
+					<a href="" onclick="return false;" id="add-ind" class="add-btn" title="Add field"><i class="icon-plus-circle"></i></a>
+					<a href="" onclick="return false;" id="clr-ind" class="clear-btn" title="Clear fields"><i class="icon-erase"></i></a>
+				</div>
+			</div>
+		</article>
+		<footer>
+			<p>2017, By Felipe Vera</p>
+		</footer>
+	</div>
+	<div id="absolutecontainer">
+	<div id="statusbar">
+		<i class="fonticon"></i>
+		<span id="status-text">This is a status bar.</span>
+		<span class="options">
+			<a id="status-ok-btn" href="" onclick="return false;"><i class="icon-ok-circle"></i></a>&nbsp;
+			<a id="status-cancel-btn" href="" onclick="return false;"><i class="icon-cancel-circle"></i></a>
+		</span>
+	</div>
+	</div>
+</body>
+</html>

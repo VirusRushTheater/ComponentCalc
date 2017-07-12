@@ -2,9 +2,23 @@
 
 var compCalculatorUtility =
 {
+	// Takes every list[].value in a list and puts it in a single array.
+	listValues: function(list)
+	{
+		var retval = []
+		for(i in list)
+		{
+			retval.push(list[i].value)
+		}
+		return retval;
+	},
+
 	// Converts a number into a prefixed component value (ex. 3300 -> 3.30k)
-	toCompValue: function(value){
+	toCompValue: function(value, html=true){
 		var pref = ['f', 'p', 'n', 'u', 'm', '', 'k', 'M', 'G', 'T']
+		if(html)
+			pref[3] = '&mu;'
+
 		var multiplier;
 		if(value != 0)
 			multiplier = Math.floor(Math.log10(value) / 3);
@@ -12,7 +26,15 @@ var compCalculatorUtility =
 			multiplier = 0
 		var normalized = value * Math.pow(1000, -multiplier)
 		
-		return normalized.toFixed(2).toString() + pref[multiplier + 5]
+		var fnumber
+		if(normalized >= 10)
+			fnumber = normalized.toFixed(0).toString()
+		else if(normalized >= 1)
+			fnumber = normalized.toFixed(1).toString()
+		else
+			fnumber = normalized.toFixed(2).toString()
+
+		return fnumber + pref[multiplier + 5]
 	},
 
 	// Removes duplicate, null and undefined entries on a list.
@@ -35,6 +57,25 @@ var compCalculatorUtility =
 		return a;
 	},
 
+	// Removes duplicate entries in an already sorted list.
+	removeListDuplicatesByProperty: function(a, property){
+		if(a == null)
+		{
+			return new Array();
+		}
+		for(var i = 1; i < a.length; ){
+			if(a[i-1][property] == a[i][property]){
+				a.splice(i, 1);
+			}
+			else if((typeof a[i][property] == undefined) || (a[i][property] == null)){
+				a.splice(i, 1);	
+			}else {
+				i++;
+			}
+		}
+		return a;
+	},
+
 	// Converts a prefixed component value (as a string) to a number. (ex. 2k2 -> 2200, 47u -> 4.7e-5)
 	fromCompValue: function(res){
 		if(typeof(res) == "number")
@@ -43,9 +84,12 @@ var compCalculatorUtility =
 		}
 		var retval = 1.0;
 		var multdic = {p:1e-12, n:1e-9, u:1e-6, m:1e-3, R:1.0, r:1.0, k:1e3, K:1e3, M:1e6, G:1e9};
-		var resvalrx = /([\d\.]*)([pnumrRkKMG]?)([\d]*)/;
+		multdic['μ'] = 1e-6;
+		var resvalrx = /^([\d\.]+)([pnuμmrRkKMG]?)([\d]*)[sSΩFH]?$/;
 		var multiplier;
 		var resmatch = resvalrx.exec(res);
+		if(resmatch == null)
+			return NaN;
 		
 		if(resmatch[1] !== ''){
 			retval = Number(resmatch[1]);
@@ -128,6 +172,213 @@ var compCalculatorUtility =
 	}
 };
 
+// Custom made parser.
+var arithmeticParser = function(_expr = ""){var retval = 
+{
+	// Abstract Syntax Tree, result of parsing.
+	ast: [],
+
+	// Assembly-like instruction array, as result of synthetizing
+	assembly: [],
+
+	// Result of the lexer
+	tokens: [],
+
+	// Expression string
+	orig_expr: _expr,
+
+	// Error string and callback.
+	error: "",
+	errorCallback: function(error=this.error){},
+
+	clear: function()
+	{
+		this.ast = []
+		this.tokens = []
+		this.orig_expr = ""
+	},
+
+	operators:
+	{
+		'nop':  	{op:'nop', 	syntax:'',		priority:-1,	cb:function(lop){return null;}}, 
+		'^': 		{op:'^',	syntax:'*x*', 	priority: 1,	cb:function(lop){return Math.pow(lop[0], lop[1])}},
+		'_': 		{op:'_',	syntax:'x*', 	priority: 2,	cb:function(lop){return (-lop[0])}},
+		'sqrt': 	{op:'sqrt',	syntax:'x*', 	priority: 3,	cb:function(lop){return Math.sqrt(lop[0])}},
+		'abs': 		{op:'abs',	syntax:'x*', 	priority: 3,	cb:function(lop){return Math.abs(lop[0])}},		
+		'*': 		{op:'*',	syntax:'*x*', 	priority: 4,	cb:function(lop){return lop[0] * lop[1]}},
+		'/': 		{op:'/',	syntax:'*x*', 	priority: 4,	cb:function(lop){return lop[0] / lop[1]}},
+		'#': 		{op:'#',	syntax:'*x*', 	priority: 4,	cb:function(lop){return (lop[0]*lop[1])/(lop[0] + lop[1])}},
+		'+': 		{op:'+',	syntax:'*x*', 	priority: 5,	cb:function(lop){return lop[0] + lop[1]}},
+		'-': 		{op:'-',	syntax:'*x*', 	priority: 5,	cb:function(lop){return lop[0] - lop[1]}}
+	},
+
+	// INTERNAL: Tokenizes a string expression.
+	_lexExpression: function(_expr)
+	{
+		// No white spaces.
+		_expr = _expr.replace(/[ \t\n\r]/g, '')
+
+		// Component values -> Plain numbers
+		_expr = _expr.replace(/([\d\.]+)([pnuμmrRkKMG]?)([\d]*)[sSΩFH]?/g, function(rxmatch){return compCalculatorUtility.fromCompValue(rxmatch)})
+
+		var abs_op = false;
+		// Lexer rules
+		var lexrules = [
+			// Digits (floating point format)
+			{regex: /^[\d]*\.?[\d]+([eE][+-]?[\d]+)?/,	type: ["literal", "number"],		callback: function(tokens, token, rx){return null}},			
+
+			// Variables (Uppercase letter + an optional number)
+			{regex: /^[A-Z][\d]*/,						type: ["literal", "variable"],		callback: function(tokens, token, rx){variables.push(rx); return null;}},
+
+			// Round parenthesis
+			{regex: /^[\(\)]/,							type: ["parenthesis", "common"],	callback: function(tokens, token, rx){if(rx =='('){token["open"] = true} else if(rx == ')'){token["open"] = false}}},
+
+			// Bars (absolute value)
+			{regex: /^\|/,								type: ["parenthesis", "abs"],		callback: function(tokens, token, rx){
+				abs_op = !abs_op; token["open"] = abs_op;
+				if(abs_op == true)
+				{
+					tokens.splice(tokens.length-1, 0, {token: rx, type:["operator"], operator:"abs"})
+				}
+			}},
+
+			// Square root function
+			{regex: /^(sqrt|abs)/,						type: ["operator"],					callback: function(tokens, token, rx){return null}},
+
+			// Power (Python style ** or conventional style ^)
+			{regex: /^(\*\*|\^)/,						type: ["operator"],					callback: function(tokens, token, rx){return null}},
+
+			// Multiplication * or division /
+			{regex: /^[\*\/]/,							type: ["operator"],					callback: function(tokens, token, rx){return null}},
+
+			// Sum +
+			{regex: /^[\+]/,							type: ["operator"],					callback: function(tokens, token, rx){return null}},
+
+			// Substraction or additive inverse
+			{regex: /^[\-]/,							type: ["operator"],					callback: function(tokens, token, rx){
+				if(tokens.length == 1 || tokens[tokens.length - 2].type[0] == "operator"){token.operator = '_'}
+			}}
+		]
+
+		var match;
+
+		this.clear();
+
+		this.orig_expr = _expr;
+
+		while(_expr.length > 0)
+		{
+			console.log(_expr);
+			for(var t = 0; t < lexrules.length; t++)
+			{
+				match = lexrules[t].regex.exec(_expr)
+				if(match != null)
+				{
+					// One of the lexrules fit into the expression.
+					this.tokens.push({
+						token: match[0],
+						type: lexrules[t].type,
+					})
+					if(this.tokens[this.tokens.length - 1].type[0] == "operator")
+					{
+						this.tokens[this.tokens.length - 1]['operator'] = match[0]
+					}
+					else
+					{
+						this.tokens[this.tokens.length - 1]['operator'] = 'nop'
+					}
+					lexrules[t].callback(this.tokens, this.tokens[this.tokens.length - 1], match[0]);
+
+					_expr = _expr.substr(match[0].length)
+
+					t = -1
+				}
+			}
+			if(_expr.length == 0)
+			{
+				break;
+			}
+			if(match == null)
+			{
+				// ERROR: Syntax error
+				console.log("_expr = " + _expr + " length = " + _expr.length)
+				console.log("ERROR: Syntax error")
+				return 0;
+			}
+		}
+	},
+
+	// Internal: Parser Part 1: Given a token list, converts parenthesis into trees.
+	_parserInternalP1 : function(tokens, start=0, end=tokens.length, parenthlevel=0)
+	{
+		var ntree = []
+		var ptbegin = Number.NaN;
+		var openparenth = 0
+
+		if(parenthlevel == -1)
+		{
+			// ERROR: Unbalanced parenthesis.
+			console.log("ERROR: Unbalanced.")
+		}
+
+		console.log("[BEGIN] parenthlevel -> " + parenthlevel)
+
+		for(var i = start; i < end;)
+		{
+			// Step 1: Recurse into parenthesis.
+			if(tokens[i].type[0] == "parenthesis")
+			{
+				if(tokens[i].open == true){
+					if(openparenth == 0)
+						ptbegin = i;
+					i++;
+					openparenth++;
+				}else{
+					if(--openparenth == 0)
+					{
+						tokens.splice(ptbegin, (i-ptbegin+1), {
+							token: this._parserInternalP1(tokens.slice(ptbegin+1, i), 0, i-ptbegin-1, parenthlevel+1),
+							type: ["tree"],
+							operator: "tree"
+						})
+
+						end -= (i-ptbegin);
+						i = ptbegin+1;
+						ptbegin = Number.NaN
+					}
+					else
+					{
+						i++;
+					}
+				}
+			}
+			else
+			{
+				i++;
+			}
+		}
+
+		console.log("[END] parenthlevel -> " + parenthlevel)
+		return tokens.slice(start, end)
+	},
+
+	_parserInternalP2: function(tokensp2)
+	{
+		return tokensp2
+	},
+
+	_parserEntry: function()
+	{
+		return this._parserInternalP1(this.tokens.slice())
+	}
+}
+
+	if(_expr.length > 0){
+		retval._lexExpression(_expr);
+	}
+	return retval;
+};
+
 var compCalculator = function(){ return(
 {
 	// Populate this with your component values here.
@@ -144,8 +395,8 @@ var compCalculator = function(){ return(
 
 	// Error string and callback.
 	error: "",
-
 	errorCallback: function(error=this.error){},
+	warningCallback: function(msg, extravalues){},
 
 	// FUNCTION:
 	// Parses a component list, formatted as values separated with commas or spaces (eg: '2k2 3.3k 10M')
@@ -460,8 +711,21 @@ var compCalculator = function(){ return(
 	// Transforms this.result into a human-readable string.
 	toString: function()
 	{
-		var retval = "Best matches for last evaluation:"
-		return "Not implemented yet."
+		var retval = "Best matches for last evaluation:\n"
+		for(m in this.result)
+		{
+			for(c in this.result[m].components)
+			{
+				retval += c + " = " + compCalculatorUtility.toCompValue(this.result[m].components[c]) + "; "
+			}
+			retval += "\t"
+			for(mt in this.result[m].match)
+			{
+				retval += "Match: " + this.result[m].match[mt].toFixed(2) + "%; "
+			}
+			retval += "\n"
+		}
+		return retval
 	},
 
 	// FUNCTION:
