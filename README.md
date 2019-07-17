@@ -1,7 +1,10 @@
 # Component calculator #
 This is a toolkit to aid in choosing a good combination of passive components (resistors, capacitors, inductors) for any purpose you want.
 
-Often, when choosing components you need to specify values that follow ratio rather than a value in particular, such as in voltage dividers.
+Often, when choosing components you need to specify values that follow ratio rather than a value in particular, such as in voltage dividers, RC filters or LC oscillators.
+
+## Want to try it? ##
+Go to https://virusrushtheater.github.io/ComponentCalc/
 
 ## How to use it ##
 1. Identify the components you need. Say, you want a voltage divider. In that case you need two resistors: Label them as R1 and R2.
@@ -18,7 +21,7 @@ For example if you want to make a voltage divider that give a total resistance o
 * `R1 / (R1 + R2) = 0.8`
 
 ## Will I update it? ##
-I doubt that I update this project any longer. I would like to make it a desktop application because, as the calculations become orders of magnitude more complex the more components you want to include in your calculations, I'd like to use the full power of multiple CPUs and graphic cards to achieve that. In other words, it would be more suited for a C++ project than a Javascript one.
+I doubt that I update this project any longer. I would like to make it a desktop application because, as the calculations become orders of magnitude more complex the more components you want to include in your calculations, I'd like to use the full power of multiple CPUs, several threads and graphic cards to achieve that. In other words, it would be more suited for a C++ project than a Javascript one.
 
 However, if you don't need anything too complex, use this instead, it's fitted for that purpose.
 
